@@ -1,5 +1,6 @@
+<!-- demo: audit-freeze gate test, do not merge -->
 # Stealth Announcer Contract (`stealth-announcer`)
-
+<!-- demo: audit-freeze gate test, do not merge -->
 **⚠️ THIS CONTRACT IS DELIBERATELY FROZEN** — The v2 announcer deployment is a stable, stateless event emitter. No state changes are possible.
 
 The `stealth-announcer` contract emits stealth address announcement events on Soroban. It is a pure event-emission function with no access control and no storage. Indexers watch for these events to let recipients detect incoming payments.
