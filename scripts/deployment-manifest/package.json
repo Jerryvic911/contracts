@@ -1,0 +1,31 @@
+{
+  "name": "wraith-deployment-manifest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Builds deployments/manifest.json from per-network deployment records and checks every checked-in consumer against it.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsx src/cli.ts build",
+    "check": "tsx src/cli.ts check",
+    "verify": "tsx src/cli.ts verify",
+    "record": "tsx src/cli.ts record",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "ajv": "^8.20.0",
+    "smol-toml": "^1.9.0",
+    "tsx": "^4.23.15",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.2"
+  }
+}

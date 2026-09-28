@@ -17,8 +17,8 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     horizen_testnet: {
-      url: process.env.HORIZEN_TESTNET_RPC_URL || 'https://testnet.horizen.io/api',
-      chainId: 1662,
+      url: process.env.HORIZEN_TESTNET_RPC_URL || 'https://horizen-testnet.rpc.caldera.xyz/http',
+      chainId: 2651420,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },

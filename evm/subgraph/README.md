@@ -28,7 +28,7 @@ Deploy the contracts using Hardhat. The deployment script automatically updates 
 cd evm
 
 # Set environment variables for the target network
-export HORIZEN_TESTNET_RPC_URL="https://testnet.horizen.io/api"
+export HORIZEN_TESTNET_RPC_URL="https://horizen-testnet.rpc.caldera.xyz/http"
 export PRIVATE_KEY="your_private_key"
 
 # Deploy to Horizen Testnet

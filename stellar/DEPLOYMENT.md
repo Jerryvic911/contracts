@@ -153,9 +153,10 @@ Expected output (abridged):
 [DRY-RUN] Will deploy: stealth-announcer
 [DRY-RUN] Will deploy: stealth-registry
 [DRY-RUN] Will deploy: stealth-sender
-[DRY-RUN] Will invoke: stealth-sender init
 [DRY-RUN] Will deploy: wraith-names
-[DRY-RUN] Will write manifest to deployments/futurenet.json
+[DRY-RUN] Will record deployment ledgers and wasm hashes to ../deployments/stellar/stellar-futurenet.json
+[DRY-RUN] Will invoke: stealth-sender init
+[DRY-RUN] Will rebuild deployments/manifest.json
 [DRY-RUN] Will verify deployment status
 ```
 
@@ -203,9 +204,16 @@ The script will:
 1. Build all contracts (`cargo build --target wasm32-unknown-unknown --release`)
 2. Optimize each WASM with `stellar contract optimize`
 3. Upload + deploy each contract in dependency order (announcer → registry → sender → names)
-4. Initialize `stealth-sender` with the announcer's contract ID
-5. Write `deployments/futurenet.json`
+4. Record every contract's ID, deployment ledger, wasm hash, crate version and
+   source commit in `deployments/stellar/stellar-futurenet.json`, then rebuild
+   `deployments/manifest.json` (before `init`, so the recorded ledger is the
+   deployment ledger)
+5. Initialize `stealth-sender` with the announcer's contract ID
 6. Verify each contract responds to a read call
+
+Set `RPC_URL` to use a private RPC endpoint; it is used for recording but never
+written to the repository. Run `npm ci` in `scripts/deployment-manifest` once
+before deploying.
 
 ### Step 4 — Verify on Stellar Expert
 
@@ -247,18 +255,16 @@ reduces this.
 
 ## Deployment Manifest
 
-After a successful run, `stellar/deployments/<network>.json` is written with:
+A successful run writes `deployments/stellar/stellar-<network>.json` and
+regenerates `deployments/manifest.json`, `stellar/contract-ids.json` (from
+`stellar-testnet`) and the README's deployed addresses. The record holds, per
+contract: contract ID, crate version, source commit, sha256 of the deployed
+wasm (the on-chain wasm hash), deployment ledger and deployer.
 
-- `network` — target network name
-- `deployer` — public key of the signing identity
-- `deployedAt` — RFC 3339 UTC timestamp
-- `stellarCoreVersion` / `sorobanRpcVersion` — recorded for reproducibility
-- `contracts` — map of contract names to contract IDs
-- `costReport` — XLM spent per operation
-- `verificationResults` — outcome of post-deploy read calls
-
-Commit this file after every deployment. It is the canonical record of what is
-deployed and where.
+Commit these files after every deployment. `deployments/manifest.json` is the
+canonical record of what is deployed and where; see
+[`deployments/README.md`](../deployments/README.md). CI fails if any checked-in
+file disagrees with it.
 
 ---
 
@@ -310,8 +316,8 @@ To overwrite an existing manifest (e.g., when redeploying after an upgrade):
 ./deploy.sh futurenet wraith-deployer --force
 ```
 
-`--force` skips the "manifest already exists" guard and overwrites
-`deployments/futurenet.json` with the new contract IDs.
+`--force` skips the "record already exists" guard and overwrites
+`deployments/stellar/stellar-futurenet.json` with the new contract IDs.
 
 For on-chain contract upgrades (without redeployment), use the Soroban upgrade
 flow documented in `stellar/GOVERNANCE.md`.

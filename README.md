@@ -187,24 +187,42 @@ CI actions, toolchains, base images and lockfile sources are pinned and checked 
 
 ## Deployed Addresses
 
-### Horizen Testnet
+Generated from [`deployments/manifest.json`](./deployments/manifest.json), the single machine-readable record of every deployment. See [`deployments/README.md`](./deployments/README.md) for the schema and how to record a new deployment.
 
-| Contract | Address |
-|---|---|
-| ERC5564Announcer | `0x8AE65c05E7eb48B9bA652781Bc0a3DBA09A484F3` |
-| ERC6538Registry | `0x953E6cEdcdfAe321796e7637d33653F6Ce05c527` |
-| WraithSender | Not yet deployed |
-| WraithNames | Not yet deployed |
-| WraithWithdrawer | Not yet deployed |
+<!-- deployments:begin -->
+<!-- Generated from deployments/manifest.json by scripts/deployment-manifest. Do not edit by hand. -->
 
-### Stellar Testnet
+### EVM: horizen-testnet
 
-| Contract | Contract ID |
-|---|---|
-| stealth-announcer | TBD |
-| stealth-registry | TBD |
-| stealth-sender | TBD |
-| wraith-names | TBD |
+| Contract | Address | Block |
+|---|---|---|
+| ERC5564Announcer | `0x8AE65c05E7eb48B9bA652781Bc0a3DBA09A484F3` | 14202900 |
+| ERC6538Registry | `0x953E6cEdcdfAe321796e7637d33653F6Ce05c527` | 14202905 |
+
+Not yet deployed: WraithSender, WraithNames, WraithWithdrawer.
+
+### Stellar
+
+No deployment recorded yet (stealth-announcer, stealth-registry, stealth-sender, wraith-names).
+
+### Solana: solana-devnet
+
+| Contract | Program ID | Slot |
+|---|---|---|
+| wraith_announcer | `9Ko7TuXHpLUH1ZsZWQEpeA9Tv7hX325ooWk5SD7Y9nuq` | 456215445 |
+| wraith_sender | `E6J7GBSTjKbYANWjfTo5HfnXZ4Tg3LAasN7NrvCwn5Dq` | 456215353 |
+| wraith_names | `4JrrQh5aK7iLvx6MgtEQk7K7X3SsWfTLxVJu1jXEwNjD` | 456215508 |
+
+### CKB: ckb-testnet
+
+| Contract | Code hash | Block | Cell dep |
+|---|---|---|---|
+| wraith-stealth-lock | `0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87` | 20799673 | `0xde1e8e4bed2d1d7102b9ad3d7a74925ace007800ae49498f9c374cb4968dd32b:0` |
+| wraith-names-type | `0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d` | 20801517 | `0x9acd640d35eadd893b358dddd415f4061fe81cb249e8ace51a866fee314141b8:0` |
+| ckb-auth (dependency) | `0x0915983bb31584df4566e0946fd00ef1e9a75ad37a39ce70fec9b5cbf3b87021` | 20101199 | `0xa0e99b29fd154385815142b76668d5f4ecf30ae85bc2942bd21e9e51b9066f97:0` |
+
+Source commits, artifact hashes, ABI hashes and transaction hashes are in [`deployments/manifest.json`](./deployments/manifest.json).
+<!-- deployments:end -->
 
 ## Pause / Circuit-Breaker
 
@@ -216,22 +234,6 @@ CI actions, toolchains, base images and lockfile sources are pinned and checked 
 | wraith-names       | Yes      | upgrade admin |
 
 See `stellar/PAUSE.md` for full pattern docs.
-
-### Solana Devnet
-
-| Program | Program ID |
-|---|---|
-| wraith-announcer | `9Ko7TuXHpLUH1ZsZWQEpeA9Tv7hX325ooWk5SD7Y9nuq` |
-| wraith-sender | `E6J7GBSTjKbYANWjfTo5HfnXZ4Tg3LAasN7NrvCwn5Dq` |
-| wraith-names | `4JrrQh5aK7iLvx6MgtEQk7K7X3SsWfTLxVJu1jXEwNjD` |
-
-### CKB Testnet
-
-| Script | Code Hash | Cell Dep |
-|---|---|---|
-| wraith-stealth-lock | `0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87` | `0xde1e8e4bed2d1d7102b9ad3d7a74925ace007800ae49498f9c374cb4968dd32b:0` |
-| wraith-names-type | `0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d` | `0x9acd640d35eadd893b358dddd415f4061fe81cb249e8ace51a866fee314141b8:0` |
-| ckb-auth (dependency) | `0x0915983bb31584df4566e0946fd00ef1e9a75ad37a39ce70fec9b5cbf3b87021` | `0xa0e99b29fd154385815142b76668d5f4ecf30ae85bc2942bd21e9e51b9066f97:0` |
 
 ## License
 

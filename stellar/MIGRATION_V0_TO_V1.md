@@ -349,9 +349,10 @@ $ ./deploy.sh futurenet wraith-deployer --dry-run
 [DRY-RUN] Will deploy: stealth-announcer
 [DRY-RUN] Will deploy: stealth-registry
 [DRY-RUN] Will deploy: stealth-sender
-[DRY-RUN] Will invoke: stealth-sender init
 [DRY-RUN] Will deploy: wraith-names
-[DRY-RUN] Will write manifest to deployments/futurenet.json
+[DRY-RUN] Will record deployment ledgers and wasm hashes to ../deployments/stellar/stellar-futurenet.json
+[DRY-RUN] Will invoke: stealth-sender init
+[DRY-RUN] Will rebuild deployments/manifest.json
 [DRY-RUN] Will verify deployment status
 Status: SUCCESS (Exit 0)
 ```
