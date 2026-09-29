@@ -8,7 +8,7 @@
 # signer rotation, rescue, and recovery — against a throwaway Stellar
 # Futurenet deployment with NO REAL FUNDS. Every command below is the exact
 # sequence already rehearsed manually once (see
-# drills/2026-09-28-operator-recovery.md for that transcript and its
+# drills/2026-09-29-operator-recovery.md for the report and its
 # evidence/findings); this script reproduces it so the drill is repeatable
 # rather than a one-off manual session.
 #

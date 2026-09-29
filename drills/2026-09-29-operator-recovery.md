@@ -191,6 +191,6 @@ applies to every contract in the workspace. Maintainers should review this chang
 2. Confirm the stealth derivation and view-tag convention against the Wraith
    Stellar spec (or replace them with the reference implementation) and update
    the rescue tool and drill if they differ.
-3. Update the "not yet rehearsed" notice in `stellar/MULTISIG.md` to link this report.
+3. Rehearse the remaining rotation paths listed in `stellar/MULTISIG.md`: the production 7-day timelock, cancel-and-repropose, `stealth-batch-sender` and `wraith-names`.
 4. Extend the drill to send a token after unpause.
 5. Extend the rescue drill to issued assets.
