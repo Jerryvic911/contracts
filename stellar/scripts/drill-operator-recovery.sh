@@ -180,8 +180,8 @@ fi
 
 # ── Phase 5: rescue (real funds recovered, end to end) ──────────────────────
 log "=== Phase 5: rescue — real funds recovered on Futurenet ==="
-log "  Funds a real stealth account with no announcement, publishes the"
-log "  announcement (scheme_id=2), has the recipient find it via RPC getEvents,"
+log "  Funds a real stealth account with no announcement, runs the fixed rescue tool"
+log "  (scripts/rescue-stealth-funds.ts) to publish the announcement (scheme_id=2), has the recipient find it via RPC getEvents,"
 log "  sweeps the funds with the derived key, and asserts balances before/after."
 log "  Any failed assertion aborts the whole drill."
 

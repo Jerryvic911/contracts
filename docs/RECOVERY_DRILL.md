@@ -13,7 +13,7 @@ are involved**: every account is generated fresh and funded by friendbot.
 1. Simulated operator key loss (one governance signer is treated as compromised)
 2. **Pause** `stealth-sender`
 3. **Signer rotation**: propose, approve to quorum, wait out the timelock, execute
-4. **Rescue**: exercises the functions in `scripts/rescue-stealth-funds.ts`
+4. **Rescue**: a real funds rescue on-chain. A stealth account is funded with no announcement, `scripts/rescue-stealth-funds.ts` publishes the announcement, the recipient finds it and sweeps the funds, and the script asserts balances before and after (evidence JSON in `drills/`)
 5. **Recovery**: unpause and verify
 
 Every phase is timestamped, and the script aborts with a logged reason if a
@@ -49,11 +49,10 @@ The drill script builds `stealth-sender` with this feature automatically.
 
 ## Known limitations
 
-- The rescue phase runs through `scripts/drill-rescue-harness.mjs`, which imports
-  the exported functions from `rescue-stealth-funds.ts` directly. The rescue tool
-  itself has known defects (address format mismatch, no real broadcast, no CLI
-  entry point) recorded in the drill report. The drill exercises and documents
-  them; it does not fix them.
+- The stealth derivation in `scripts/stealth-derivation.ts` is a DKSAP-style Ed25519
+  construction used by both the rescue tool and this drill. It has not been checked
+  against a published Wraith Stellar specification. If the production wallet derives
+  addresses differently, the tool and drill must be updated to match.
 - Pause is controlled by a single `admin` address with no rotation path. The
   report records this as a rollback gap.
 
