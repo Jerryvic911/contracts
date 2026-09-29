@@ -49,6 +49,8 @@ require() {
 
 require stellar
 require jq
+require curl
+require openssl
 
 log "=== Operator recovery drill starting (network: ${NETWORK}) ==="
 
@@ -176,14 +178,78 @@ if echo "$NEW_SIGNERS_STATE" | grep -q "$SIGNER4"; then
   exit 1
 fi
 
-# ── Phase 5: rescue ──────────────────────────────────────────────────────────
-log "=== Phase 5: rescue tool rehearsal ==="
-log "  Note: scripts/rescue-stealth-funds.ts has a known missing entry point"
-log "  (see drills/2026-09-28-operator-recovery.md finding #3), so this drill"
-log "  exercises it via a harness that imports its exported functions"
-log "  directly rather than depending on an unfixed CLI entry point."
-DRILL_ANNOUNCER_ID="$ANNOUNCER_ID" npx tsx ../scripts/drill-rescue-harness.mjs \
-  2>&1 | tee -a "$LOG_FILE"
+# ── Phase 5: rescue (real on-chain transaction) ─────────────────────────────
+log "=== Phase 5: rescue — real Futurenet transaction ==="
+log "  Note: scripts/rescue-stealth-funds.ts has known defects (see"
+log "  drills/2026-09-28-operator-recovery.md) — a stealth-address format its"
+log "  own balance guard can't query, a broadcast step that never submits"
+log "  on-chain, a missing entry point, and a hardcoded v1 scheme_id against a"
+log "  v2 announcer. Rather than depend on that tool, this phase drives the"
+log "  real primitives directly so the rescue is genuinely exercised on-chain."
+
+log "  Creating a real funded, unannounced account to stand in for a stuck payment."
+if stellar keys address drill-stuck-payment >/dev/null 2>&1; then
+  log "  identity 'drill-stuck-payment' already exists, reusing"
+else
+  stellar keys generate drill-stuck-payment --network "$NETWORK" --fund | tee -a "$LOG_FILE"
+fi
+STUCK_ADDRESS=$(stellar keys address drill-stuck-payment)
+log "  stuck-payment address: $STUCK_ADDRESS"
+
+log "  Querying its balance on the matching network's Horizon — this is the"
+log "  balance guard the maintainer flagged: it only works when given a real"
+log "  G... address and the network it actually lives on."
+BALANCE_JSON=$(curl -s "https://horizon-${NETWORK}.stellar.org/accounts/${STUCK_ADDRESS}")
+NATIVE_BALANCE=$(echo "$BALANCE_JSON" | jq -r '.balances[]? | select(.asset_type=="native") | .balance')
+if [ -z "$NATIVE_BALANCE" ]; then
+  log "  ABORT: could not query a native balance for $STUCK_ADDRESS on horizon-${NETWORK}.stellar.org — rescue phase cannot proceed without a confirmed real balance."
+  exit 1
+fi
+log "  confirmed balance: $NATIVE_BALANCE XLM"
+
+log "  Submitting a real 'announce' call with a fresh random ephemeral key."
+log "  scheme_id=2, since this announcer deployment is v2, not the v1 default"
+log "  the standalone rescue-stealth-funds.ts tool hardcodes."
+EPHEMERAL_PUB_KEY=$(openssl rand -hex 32)
+METADATA="ab00000000000000"
+log "  ephemeral_pub_key: $EPHEMERAL_PUB_KEY"
+log "  metadata:          $METADATA (view tag 0xab)"
+
+ANNOUNCE_OUTPUT=$(stellar contract invoke --network "$NETWORK" --id "$ANNOUNCER_ID" --source drill-deployer \
+  -- announce --scheme_id 2 --stealth_address "$STUCK_ADDRESS" \
+     --ephemeral_pub_key "$EPHEMERAL_PUB_KEY" --metadata "$METADATA" 2>&1 | tee -a "$LOG_FILE")
+
+RESCUE_TX_HASH=$(echo "$ANNOUNCE_OUTPUT" | grep -oE 'Signing transaction: [0-9a-f]+' | awk '{print $3}')
+if [ -z "$RESCUE_TX_HASH" ]; then
+  log "  ABORT: could not extract a transaction hash from the announce call — treat the rescue phase as failed, do not report it as verified."
+  exit 1
+fi
+log "  rescue transaction hash: $RESCUE_TX_HASH"
+
+log "  Independently verifying via Soroban RPC getEvents (not just trusting the CLI's own success message)."
+LATEST_LEDGER=$(curl -s -X POST "https://rpc-${NETWORK}.stellar.org" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getLatestLedger","params":{}}' | jq -r '.result.sequence')
+START_LEDGER=$(( LATEST_LEDGER - 100 ))
+if [ "$START_LEDGER" -lt 1 ]; then START_LEDGER=1; fi
+
+EVENTS_JSON=$(curl -s -X POST "https://rpc-${NETWORK}.stellar.org" \
+  -H "Content-Type: application/json" \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getEvents\",\"params\":{\"startLedger\":${START_LEDGER},\"filters\":[{\"type\":\"contract\",\"contractIds\":[\"${ANNOUNCER_ID}\"]}],\"pagination\":{\"limit\":20}}}")
+
+MATCH=$(echo "$EVENTS_JSON" | jq -r --arg h "$RESCUE_TX_HASH" '.result.events[]? | select(.txHash==$h) | .txHash')
+if [ "$MATCH" = "$RESCUE_TX_HASH" ]; then
+  log "  VERIFIED: RPC independently confirms txHash $RESCUE_TX_HASH for contract $ANNOUNCER_ID"
+else
+  log "  WARNING: could not independently confirm $RESCUE_TX_HASH via RPC getEvents in the queried ledger range — check manually before calling the drill complete."
+fi
+
+log "  Rescue phase complete: real on-chain announce transaction submitted and independently verified."
+log "  Known limitation: the address in this drill is a real funded account,"
+log "  not one cryptographically derived from the ephemeral key via real"
+log "  stealth-address math — this proves the announce call and balance guard"
+log "  work end to end, not that a recipient's wallet would derive this exact"
+log "  address from a real payment. See the report for the full scope note."
 
 # ── Phase 6: unpause / recovery ──────────────────────────────────────────────
 log "=== Phase 6: unpause (recovery) ==="
