@@ -5,15 +5,18 @@ import {
 } from '@stellar/stellar-sdk';
 import {
   generateRecipient, randomEphemeralScalar, senderDerive, recipientDerive, signWithScalar,
-} from './drill-stealth';
+} from './stealth-derivation';
 
 const NETWORK = process.env.DRILL_NETWORK ?? 'futurenet';
 const HORIZON = process.env.DRILL_HORIZON ?? 'https://horizon-futurenet.stellar.org';
 const RPC = process.env.DRILL_RPC ?? 'https://rpc-futurenet.stellar.org';
 const PASSPHRASE = Networks.FUTURENET;
 const FUNDER = process.env.DRILL_FUNDER ?? 'drill-deployer';
-const ANNOUNCER = process.env.DRILL_ANNOUNCER_ID;
-if (!ANNOUNCER) throw new Error('DRILL_ANNOUNCER_ID env var is required');
+const ANNOUNCER: string =
+  process.env.DRILL_ANNOUNCER_ID ??
+  (() => {
+    throw new Error('DRILL_ANNOUNCER_ID env var is required');
+  })();
 
 const horizon = new Horizon.Server(HORIZON);
 const rpcServer = new rpc.Server(RPC);

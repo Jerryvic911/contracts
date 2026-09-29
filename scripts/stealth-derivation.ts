@@ -2,7 +2,7 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import { createHash, randomBytes } from 'crypto';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
 
-// Drill-only stealth derivation (DKSAP-style, Ed25519). Testnet/futurenet rehearsal use.
+// Ed25519 stealth derivation (DKSAP-style), shared by the rescue tool and the recovery drill.
 const L = 2n ** 252n + 27742317777372353535851937790883648493n;
 const Point = ed25519.Point;
 
@@ -93,8 +93,35 @@ export function signWithScalar(
 
 export const randomEphemeralScalar = randomScalar;
 
-// ── Self-test: npx tsx scripts/drill-stealth.ts ──
-if (process.argv[1]?.replace(/\\/g, '/').endsWith('drill-stealth.ts')) {
+/** Reduce a 32-byte hex string to a valid Ed25519 scalar (little-endian, mod L). */
+export function scalarFromHex(hex: string): bigint {
+  const buf = Buffer.from(hex, 'hex');
+  if (buf.length !== 32) {
+    throw new Error(`Ephemeral private key must be 32 bytes, got ${buf.length}`);
+  }
+  const s = mod(leToBig(buf));
+  if (s === 0n) throw new Error('Ephemeral private key reduces to zero');
+  return s;
+}
+
+/** Public key (32-byte hex) for a scalar. */
+export const publicKeyHex = pubHex;
+
+/** ECDH shared point (32-byte hex): scalar * viewing public key. */
+export function sharedPointHex(scalar: bigint, viewPubHex: string): string {
+  return Point.fromHex(viewPubHex).multiply(scalar).toHex();
+}
+
+/** Stealth account from the spending public key and a shared point. */
+export function stealthFromShared(spendPubHex: string, sharedHex: string) {
+  const { h } = hashFromShared(sharedHex);
+  const stealthPub = Point.fromHex(spendPubHex).add(Point.BASE.multiply(h));
+  const stealthPubBytes = Buffer.from(stealthPub.toHex(), 'hex');
+  return { stealthPubBytes, address: StrKey.encodeEd25519PublicKey(stealthPubBytes) };
+}
+
+// ── Self-test: npx tsx scripts/stealth-derivation.ts ──
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('stealth-derivation.ts')) {
   const recipient = generateRecipient();
   const eph = randomScalar();
   const s = senderDerive(eph, recipient.metaAddress);
