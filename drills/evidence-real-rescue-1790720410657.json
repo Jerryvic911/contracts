@@ -1,0 +1,17 @@
+{
+  "network": "futurenet",
+  "rescueTool": "scripts/rescue-stealth-funds.ts",
+  "announcer": "CC6UTYUP45J5WHLQNWQWMCZDAI7OI3AG6N4SDFE6HXBW6Q7OW66JMF5A",
+  "stuckAddress": "GC6VNDEHA4PPS5XTIJCCO4GXEG2YW3646OGSOHYSVQZYEQLTANOAVXCJ",
+  "destination": "GA5I2SBEUZSBUPYFUXV2DBRF47TDQZNIBLD33ZKT4NUAR6OJC5BNN4LE",
+  "fundTx": "ef4477e2893c7e32ab2019daac65c169095e8e3b33bd5678352756eb6aaf205b",
+  "announceTx": "b445d0f9c5da51dfef0d76ec440e3d6ddbe468063864c3f3567b55cf3b98e47a",
+  "sweepTx": "bcec3085720bbddc991c7a61256fa696da81d8461d92f210acdf5023424e3333",
+  "stuckBeforeStroops": "200000000",
+  "stuckAfter": "account merged (removed)",
+  "destBeforeStroops": "50000000",
+  "destAfterStroops": "249999900",
+  "gainedStroops": "199999900",
+  "sweepFeeStroops": "100",
+  "elapsedSeconds": "27.0"
+}

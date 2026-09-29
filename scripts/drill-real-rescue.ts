@@ -1,11 +1,13 @@
 import { spawnSync } from 'child_process';
 import { writeFileSync } from 'fs';
+import { randomBytes } from 'crypto';
 import {
   Horizon, rpc, Keypair, TransactionBuilder, Operation, BASE_FEE, Networks, xdr, scValToNative,
 } from '@stellar/stellar-sdk';
 import {
-  generateRecipient, randomEphemeralScalar, senderDerive, recipientDerive, signWithScalar,
+  generateRecipient, scalarFromHex, senderDerive, recipientDerive, signWithScalar,
 } from './stealth-derivation';
+import { runRescue } from './rescue-stealth-funds';
 
 const NETWORK = process.env.DRILL_NETWORK ?? 'futurenet';
 const HORIZON = process.env.DRILL_HORIZON ?? 'https://horizon-futurenet.stellar.org';
@@ -17,18 +19,13 @@ const ANNOUNCER: string =
   (() => {
     throw new Error('DRILL_ANNOUNCER_ID env var is required');
   })();
+const STUCK_AMOUNT = '20';
 
 const horizon = new Horizon.Server(HORIZON);
 const rpcServer = new rpc.Server(RPC);
 const log = (m: string) => console.log(`[${new Date().toISOString()}] ${m}`);
 const fail = (m: string): never => { throw new Error(`DRILL FAILED: ${m}`); };
 const stroops = (s: string) => BigInt(s.replace('.', ''));
-
-function cli(args: string[]): string {
-  const r = spawnSync('stellar', args, { encoding: 'utf8', shell: process.platform === 'win32' });
-  if (r.status !== 0) fail(`stellar ${args.join(' ')} -> ${r.stderr || r.stdout}`);
-  return `${r.stdout}\n${r.stderr}`;
-}
 
 function funderSecret(): string {
   for (const sub of [['keys', 'secret', FUNDER], ['keys', 'show', FUNDER]]) {
@@ -52,17 +49,18 @@ async function nativeBalance(addr: string): Promise<bigint | null> {
 async function main() {
   const t0 = Date.now();
   const recipient = generateRecipient();
-  const eph = randomEphemeralScalar();
-  const stuck = senderDerive(eph, recipient.metaAddress);
+  const ephHex = randomBytes(32).toString('hex');
+  const stuck = senderDerive(scalarFromHex(ephHex), recipient.metaAddress);
   const dest = Keypair.random();
-  const funder = Keypair.fromSecret(funderSecret());
+  const funderSec = funderSecret();
+  const funder = Keypair.fromSecret(funderSec);
   log(`stuck stealth address: ${stuck.address}`);
 
   // 1. Fund the stuck address (no announcement yet) and a destination account
   const fundTx = new TransactionBuilder(await horizon.loadAccount(funder.publicKey()), {
     fee: BASE_FEE, networkPassphrase: PASSPHRASE,
   })
-    .addOperation(Operation.createAccount({ destination: stuck.address, startingBalance: '20' }))
+    .addOperation(Operation.createAccount({ destination: stuck.address, startingBalance: STUCK_AMOUNT }))
     .addOperation(Operation.createAccount({ destination: dest.publicKey(), startingBalance: '5' }))
     .setTimeout(60).build();
   fundTx.sign(funder);
@@ -71,15 +69,28 @@ async function main() {
   const destBefore = (await nativeBalance(dest.publicKey())) ?? fail('destination missing');
   log(`funded: stuck=${stuckBefore} stroops, dest=${destBefore} stroops (tx ${fundRes.hash})`);
 
-  // 2. Rescue step 1: real announce on-chain (scheme 2 = v2 announcer)
+  // 2. Rescue step 1: run the real rescue tool (derive, balance guard, real Soroban announce)
   const startLedger = (await rpcServer.getLatestLedger()).sequence;
-  const out = cli([
-    'contract', 'invoke', '--network', NETWORK, '--id', ANNOUNCER, '--source', FUNDER, '--',
-    'announce', '--scheme_id', '2', '--stealth_address', stuck.address,
-    '--ephemeral_pub_key', stuck.ephPubHex, '--metadata', '2a',
-  ]);
-  const announceHash = out.match(/Signing transaction: ([0-9a-f]{64})/)?.[1] ?? fail('no tx hash from announce');
-  log(`announce tx: ${announceHash}`);
+  const rescue = await runRescue(
+    {
+      ephemeralKey: ephHex,
+      recipientMetaAddress: recipient.metaAddress,
+      amount: STUCK_AMOUNT,
+      asset: 'XLM',
+      announcerId: ANNOUNCER,
+      rpc: RPC,
+      horizon: HORIZON,
+      networkPassphrase: PASSPHRASE,
+      sourceSecret: funderSec,
+      schemeId: 2,
+    },
+    { log: (m) => log(`  rescue tool: ${m}`) },
+  );
+  if (rescue.stealthAddress !== stuck.address) {
+    fail(`rescue tool derived ${rescue.stealthAddress}, sender derived ${stuck.address}`);
+  }
+  const announceHash = rescue.txHash ?? fail('rescue tool returned no transaction hash');
+  log(`announce tx (via rescue tool): ${announceHash}`);
 
   // 3. Recipient scans events and finds the payment
   let found: any = null;
@@ -122,9 +133,9 @@ async function main() {
 
   const seconds = ((Date.now() - t0) / 1000).toFixed(1);
   const evidence = {
-    network: NETWORK, announcer: ANNOUNCER, stuckAddress: stuck.address,
-    destination: dest.publicKey(), fundTx: fundRes.hash, announceTx: announceHash,
-    sweepTx: mergeRes.hash, stuckBeforeStroops: stuckBefore.toString(),
+    network: NETWORK, rescueTool: 'scripts/rescue-stealth-funds.ts', announcer: ANNOUNCER,
+    stuckAddress: stuck.address, destination: dest.publicKey(), fundTx: fundRes.hash,
+    announceTx: announceHash, sweepTx: mergeRes.hash, stuckBeforeStroops: stuckBefore.toString(),
     stuckAfter: 'account merged (removed)', destBeforeStroops: destBefore.toString(),
     destAfterStroops: destAfter.toString(), gainedStroops: gained.toString(),
     sweepFeeStroops: fee.toString(), elapsedSeconds: seconds,
