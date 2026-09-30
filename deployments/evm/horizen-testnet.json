@@ -1,0 +1,49 @@
+{
+  "chain": "evm",
+  "network": "horizen-testnet",
+  "networkId": "2651420",
+  "rpcUrl": "https://horizen-testnet.rpc.caldera.xyz/http",
+  "recordedBy": "chain-query",
+  "contracts": [
+    {
+      "name": "ERC5564Announcer",
+      "id": "0x8AE65c05E7eb48B9bA652781Bc0a3DBA09A484F3",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "keccak256",
+        "value": "0x9b846a07b17d019277a06764e6d0281dac81741c9a64944ede50ddc23ef10be0"
+      },
+      "abi": {
+        "path": "evm/subgraph/abis/ERC5564Announcer.json",
+        "sha256": "0x2ddba580bf506dd79d90f06eda6db7d1311cc772768332c8eed67a3cca5811c5"
+      },
+      "deployment": {
+        "height": 14202900,
+        "txHash": "0xf5122f56ffad88133ee86b35a77f478a9ea21aa42ce063e66a2a4b22cf31017c",
+        "deployer": "0x2e3af2ef5bc195fdefa6bc2b0ed0465d129616df",
+        "timestamp": "2026-04-10T03:34:50Z"
+      }
+    },
+    {
+      "name": "ERC6538Registry",
+      "id": "0x953E6cEdcdfAe321796e7637d33653F6Ce05c527",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "keccak256",
+        "value": "0x81d5bdf8d1ccb3ced05fde681ae45ecd6ae51dde1e368fed331eeb1684a383e2"
+      },
+      "abi": {
+        "path": "evm/subgraph/abis/ERC6538Registry.json",
+        "sha256": "0xc539d41563bb044dc6b8c0cbd0db0a84b7949292fd88b48c2aa0707f3ef8e429"
+      },
+      "deployment": {
+        "height": 14202905,
+        "txHash": "0x6f71fd75d4a92e78a9e8dc72cac7dd7f7c36dd81b69ecb94a4f7db83c73e296c",
+        "deployer": "0x2e3af2ef5bc195fdefa6bc2b0ed0465d129616df",
+        "timestamp": "2026-04-10T03:34:55Z"
+      }
+    }
+  ]
+}

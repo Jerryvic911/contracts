@@ -2,7 +2,7 @@
 
 ## Current status
 
-`stellar/contract-ids.json` currently contains empty values for the four core Stellar contracts:
+The machine-readable record of every deployment, on all chains, is [`deployments/manifest.json`](../deployments/manifest.json) (schema and process in [`deployments/README.md`](../deployments/README.md)). It has no Stellar deployment yet, so `stellar/contract-ids.json`, which is generated from it, is empty for the four core Stellar contracts:
 
 | Contract | Mainnet contract ID | Status |
 | --- | --- | --- |
@@ -20,7 +20,7 @@
 3. Deploy `stealth-sender` and initialize it with the announcer contract address and any required policy/admin configuration.
 4. Deploy `wraith-names`.
 5. Configure governance and asset policy controls.
-6. Update `stellar/contract-ids.json`.
+6. `stellar/deploy.sh` records the IDs, deployment ledgers, wasm hashes and source commit in `deployments/stellar/stellar-mainnet.json` and regenerates `deployments/manifest.json` and `stellar/contract-ids.json`; commit them.
 7. Run reproducible build verification against final IDs.
 
 ## Governance manifest

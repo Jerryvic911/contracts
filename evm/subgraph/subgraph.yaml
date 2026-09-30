@@ -32,7 +32,7 @@ dataSources:
     source:
       address: '0x953E6cEdcdfAe321796e7637d33653F6Ce05c527'
       abi: ERC6538Registry
-      startBlock: 14202900
+      startBlock: 14202905
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

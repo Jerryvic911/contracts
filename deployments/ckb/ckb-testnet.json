@@ -1,0 +1,82 @@
+{
+  "chain": "ckb",
+  "network": "ckb-testnet",
+  "networkId": "0x10639e0895502b5688a6be8cf69460d76541bfa4821629d86d62ba0aae3f9606",
+  "rpcUrl": "https://testnet.ckbapp.dev",
+  "recordedBy": "chain-query",
+  "contracts": [
+    {
+      "name": "wraith-stealth-lock",
+      "id": "0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "blake2b-256",
+        "value": "0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87"
+      },
+      "deployment": {
+        "height": 20799673,
+        "txHash": "0xde1e8e4bed2d1d7102b9ad3d7a74925ace007800ae49498f9c374cb4968dd32b",
+        "deployer": null,
+        "timestamp": "2026-04-17T20:05:54Z"
+      },
+      "ckb": {
+        "hashType": "data2",
+        "cellDep": {
+          "txHash": "0xde1e8e4bed2d1d7102b9ad3d7a74925ace007800ae49498f9c374cb4968dd32b",
+          "index": 0,
+          "depType": "code"
+        }
+      }
+    },
+    {
+      "name": "wraith-names-type",
+      "id": "0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "blake2b-256",
+        "value": "0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d"
+      },
+      "deployment": {
+        "height": 20801517,
+        "txHash": "0x9acd640d35eadd893b358dddd415f4061fe81cb249e8ace51a866fee314141b8",
+        "deployer": null,
+        "timestamp": "2026-04-18T00:02:06Z"
+      },
+      "ckb": {
+        "hashType": "data2",
+        "cellDep": {
+          "txHash": "0x9acd640d35eadd893b358dddd415f4061fe81cb249e8ace51a866fee314141b8",
+          "index": 0,
+          "depType": "code"
+        }
+      }
+    },
+    {
+      "name": "ckb-auth",
+      "id": "0x0915983bb31584df4566e0946fd00ef1e9a75ad37a39ce70fec9b5cbf3b87021",
+      "version": null,
+      "sourceCommit": null,
+      "external": true,
+      "artifactHash": {
+        "algorithm": "blake2b-256",
+        "value": "0x24cbc0576afd0bb1e73871363d4724d5a09f428c16090a0f2cb71de6a4221372"
+      },
+      "deployment": {
+        "height": 20101199,
+        "txHash": "0xa0e99b29fd154385815142b76668d5f4ecf30ae85bc2942bd21e9e51b9066f97",
+        "deployer": null,
+        "timestamp": "2026-02-12T02:40:29Z"
+      },
+      "ckb": {
+        "hashType": "type",
+        "cellDep": {
+          "txHash": "0xa0e99b29fd154385815142b76668d5f4ecf30ae85bc2942bd21e9e51b9066f97",
+          "index": 0,
+          "depType": "code"
+        }
+      }
+    }
+  ]
+}

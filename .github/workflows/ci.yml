@@ -69,6 +69,7 @@ jobs:
       - run: npx prettier --check --ignore-path ../.prettierignore .
       - run: npx hardhat compile
       - run: npx hardhat test
+      - run: npm run validate-subgraph
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
@@ -99,7 +100,7 @@ jobs:
           sarif: evm/results.sarif
 
       - name: Upload Slither SARIF
-        if: always()
+        if: always() && hashFiles('evm/results.sarif') != ''
         uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           sarif_file: evm/results.sarif
@@ -597,6 +598,20 @@ jobs:
           targets: riscv64imac-unknown-none-elf
       - run: sudo apt-get update && sudo apt-get install -y gcc-riscv64-unknown-elf
       - run: CC_riscv64imac_unknown_none_elf=riscv64-unknown-elf-gcc cargo build --target riscv64imac-unknown-none-elf --release -p wraith-stealth-lock
+      # Transaction-level tests (#195): run the compiled RISC-V artifact inside
+      # ckb-testtool's in-process simulator. Covers signature/argument validation,
+      # malformed cells, amount checks, the produced code hash, and writes a
+      # CKB-debugger-replayable fixture for every failing transaction.
+      - name: Run CKB lock-script integration tests
+        run: make test-ci
+      - name: Upload CKB transaction fixtures
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ckb-transaction-fixtures
+          path: ckb/target/ckb-fixtures/
+          if-no-files-found: ignore
+          retention-days: 14
 
   fuzz:
     # Nightly cargo-fuzz run against stealth-sender's batch payload surface.
@@ -624,3 +639,28 @@ jobs:
         with:
           name: fuzz-artifacts
           path: stellar/stealth-sender/fuzz/artifacts/
+
+  conformance:
+    needs: changes
+    if: needs.changes.outputs.evm == 'true' || needs.changes.outputs.stellar == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+        working-directory: evm
+      - run: npx hardhat test test/conformance.test.ts
+        working-directory: evm
+      - run: npm ci
+        working-directory: evm/subgraph
+      - run: npm run codegen
+        working-directory: evm/subgraph
+      - run: npm run test -- conformance
+        working-directory: evm/subgraph
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - run: cargo test --package integration-tests --test conformance
+        working-directory: stellar

@@ -10,4 +10,5 @@ stellar
 **/subgraph/node_modules
 **/subgraph/generated
 **/subgraph/build
+**/subgraph/tests/.bin
 **/subgraph/tests/.latest.json

@@ -23,14 +23,30 @@ for arg in "$@"; do
   fi
 done
 
-MANIFEST_DIR="deployments"
-MANIFEST_FILE="${MANIFEST_DIR}/${NETWORK}.json"
+# Deployments are recorded in the repository-wide manifest (deployments/README.md).
+RECORD_FILE="../deployments/stellar/stellar-${NETWORK}.json"
+MANIFEST_TOOL="../scripts/deployment-manifest"
 
-mkdir -p "$MANIFEST_DIR"
+case "$NETWORK" in
+    testnet)   DEFAULT_RPC="https://soroban-testnet.stellar.org" ;;
+    futurenet) DEFAULT_RPC="https://rpc-futurenet.stellar.org" ;;
+    *)         DEFAULT_RPC="" ;;
+esac
+RPC_URL="${RPC_URL:-$DEFAULT_RPC}"
 
-if [[ -f "$MANIFEST_FILE" && $FORCE -eq 0 && $DRY_RUN -eq 0 ]]; then
-    echo "Error: Deployment manifest $MANIFEST_FILE already exists."
+if [[ -f "$RECORD_FILE" && $FORCE -eq 0 && $DRY_RUN -eq 0 ]]; then
+    echo "Error: Deployment record $RECORD_FILE already exists."
     echo "Use --force to overwrite."
+    exit 1
+fi
+
+if [[ -z "$RPC_URL" && $DRY_RUN -eq 0 ]]; then
+    echo "Error: set RPC_URL for network $NETWORK (used to record deployment ledgers)."
+    exit 1
+fi
+
+if [[ ! -d "$MANIFEST_TOOL/node_modules" && $DRY_RUN -eq 0 ]]; then
+    echo "Error: run 'npm ci' in scripts/deployment-manifest first."
     exit 1
 fi
 
@@ -42,9 +58,10 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "[DRY-RUN] Will deploy: stealth-announcer"
     echo "[DRY-RUN] Will deploy: stealth-registry"
     echo "[DRY-RUN] Will deploy: stealth-sender"
-    echo "[DRY-RUN] Will invoke: stealth-sender init"
     echo "[DRY-RUN] Will deploy: wraith-names"
-    echo "[DRY-RUN] Will write manifest to $MANIFEST_FILE"
+    echo "[DRY-RUN] Will record deployment ledgers and wasm hashes to $RECORD_FILE"
+    echo "[DRY-RUN] Will invoke: stealth-sender init"
+    echo "[DRY-RUN] Will rebuild deployments/manifest.json"
     echo "[DRY-RUN] Will verify deployment status"
     exit 0
 fi
@@ -100,6 +117,45 @@ SENDER_ID=$(soroban contract deploy \
     --network $NETWORK)
 echo "✅ stealth-sender: $SENDER_ID"
 
+# 4. Deploy wraith-names
+echo "--- Deploying wraith-names ---"
+NAMES_ID=$(soroban contract deploy \
+    --wasm "$NAMES_WASM" \
+    --source $IDENTITY \
+    --network $NETWORK)
+echo "✅ wraith-names: $NAMES_ID"
+
+# Record before init: the recorder takes each contract's deployment ledger from
+# its instance entry, which init would modify.
+echo "--- Recording Deployment ---"
+DEPLOYER_PUBKEY=$(soroban keys address $IDENTITY)
+STELLAR_DIR=$(pwd)
+crate_version() {
+    grep -m1 -E '^version' "$STELLAR_DIR/$1/Cargo.toml" | sed -E 's/.*"(.*)".*/\1/'
+}
+if (cd "$MANIFEST_TOOL" && npx tsx src/cli.ts record stellar \
+    --network "stellar-${NETWORK}" \
+    --rpc "$RPC_URL" \
+    ${DEFAULT_RPC:+--public-rpc "$DEFAULT_RPC"} \
+    --recorded-by deploy-script \
+    --source-commit HEAD \
+    --deployer "$DEPLOYER_PUBKEY" \
+    --contract "stealth-announcer=$ANNOUNCER_ID" --wasm "stealth-announcer=$STELLAR_DIR/$ANNOUNCER_WASM" \
+    --contract "stealth-registry=$REGISTRY_ID" --wasm "stealth-registry=$STELLAR_DIR/$REGISTRY_WASM" \
+    --contract "stealth-sender=$SENDER_ID" --wasm "stealth-sender=$STELLAR_DIR/$SENDER_WASM" \
+    --contract "wraith-names=$NAMES_ID" --wasm "wraith-names=$STELLAR_DIR/$NAMES_WASM" \
+    --version "stealth-announcer=$(crate_version stealth-announcer)" \
+    --version "stealth-registry=$(crate_version stealth-registry)" \
+    --version "stealth-sender=$(crate_version stealth-sender)" \
+    --version "wraith-names=$(crate_version wraith-names)"); then
+    echo "✅ Recorded to $RECORD_FILE and rebuilt deployments/manifest.json"
+    RECORD_FAILED=0
+else
+    # Keep going: the contracts are live and stealth-sender must still be initialized.
+    echo "❌ Recording failed. Re-run the record command in scripts/deployment-manifest before committing."
+    RECORD_FAILED=1
+fi
+
 # Initialize stealth-sender with announcer ID
 echo "Initializing stealth-sender..."
 soroban contract invoke \
@@ -110,34 +166,6 @@ soroban contract invoke \
     init \
     --admin $IDENTITY \
     --announcer $ANNOUNCER_ID
-
-# 4. Deploy wraith-names
-echo "--- Deploying wraith-names ---"
-NAMES_ID=$(soroban contract deploy \
-    --wasm "$NAMES_WASM" \
-    --source $IDENTITY \
-    --network $NETWORK)
-echo "✅ wraith-names: $NAMES_ID"
-
-# Write JSON manifest
-echo "--- Writing Deployment Manifest ---"
-DEPLOYER_PUBKEY=$(soroban keys address $IDENTITY 2>/dev/null || echo "$IDENTITY")
-DATE_STR=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-cat > "$MANIFEST_FILE" <<EOF
-{
-  "network": "$NETWORK",
-  "deployer": "$DEPLOYER_PUBKEY",
-  "deployedAt": "$DATE_STR",
-  "contracts": {
-    "stealthAnnouncer": "$ANNOUNCER_ID",
-    "stealthRegistry": "$REGISTRY_ID",
-    "stealthSender": "$SENDER_ID",
-    "wraithNames": "$NAMES_ID"
-  }
-}
-EOF
-echo "✅ Manifest written to $MANIFEST_FILE"
 
 # Verification step (optional but nice)
 echo "--- Verifying Deployments ---"
@@ -157,3 +185,8 @@ echo "Registry:  $REGISTRY_ID"
 echo "Sender:    $SENDER_ID"
 echo "Names:     $NAMES_ID"
 echo "--------------------------------------"
+
+if [[ $RECORD_FAILED -eq 1 ]]; then
+    echo "❌ Deployment succeeded but was not recorded in deployments/. See the error above."
+    exit 1
+fi

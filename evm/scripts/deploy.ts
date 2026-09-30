@@ -1,33 +1,74 @@
 import { ethers } from 'hardhat';
+import { execFileSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+declare const hre: any;
+
+interface Deployed {
+  name: string;
+  address: string;
+  txHash: string;
+}
+
+async function deploy(name: string, ...args: unknown[]): Promise<Deployed> {
+  const factory = await ethers.getContractFactory(name);
+  const contract = await factory.deploy(...args);
+  await contract.waitForDeployment();
+  const address = await contract.getAddress();
+  const txHash = contract.deploymentTransaction()!.hash;
+  console.log(`${name}:`, address);
+  return { name, address, txHash };
+}
 
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log('Deploying contracts with:', deployer.address);
 
-  const Announcer = await ethers.getContractFactory('ERC5564Announcer');
-  const announcer = await Announcer.deploy();
-  await announcer.waitForDeployment();
-  console.log('ERC5564Announcer:', await announcer.getAddress());
+  const announcer = await deploy('ERC5564Announcer');
+  const registry = await deploy('ERC6538Registry');
+  const sender = await deploy('WraithSender', announcer.address);
+  const names = await deploy('WraithNames');
+  const withdrawer = await deploy('WraithWithdrawer');
+  const deployed = [announcer, registry, sender, names, withdrawer];
 
-  const Registry = await ethers.getContractFactory('ERC6538Registry');
-  const registry = await Registry.deploy();
-  await registry.waitForDeployment();
-  console.log('ERC6538Registry:', await registry.getAddress());
+  // Record the deployment in deployments/evm/<network>.json. The manifest tool
+  // reads each contract's deployment receipt for its exact block, hashes the
+  // runtime bytecode, then rebuilds deployments/manifest.json and the subgraph
+  // instant config. See deployments/README.md.
+  const network = hre.network.name;
+  if (network === 'hardhat' || network === 'localhost') {
+    console.log('\nLocal network: not recording to deployments/.');
+  } else {
+    const { version } = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'),
+    );
+    execFileSync(
+      'npx',
+      [
+        'tsx',
+        'src/cli.ts',
+        'record',
+        'evm',
+        '--network',
+        network.replace(/_/g, '-'),
+        '--rpc',
+        hre.network.config.url,
+        '--recorded-by',
+        'deploy-script',
+        '--source-commit',
+        'HEAD',
+        '--version',
+        version,
+        ...deployed.flatMap((d) => ['--contract', `${d.name}=${d.address}@${d.txHash}`]),
+      ],
+      { cwd: path.join(__dirname, '../../scripts/deployment-manifest'), stdio: 'inherit' },
+    );
+    console.log('\nUpdate evm/subgraph/subgraph.yaml to match, then run the manifest check.');
+  }
 
-  const Sender = await ethers.getContractFactory('WraithSender');
-  const sender = await Sender.deploy(await announcer.getAddress());
-  await sender.waitForDeployment();
-  console.log('WraithSender:', await sender.getAddress());
-
-  const Names = await ethers.getContractFactory('WraithNames');
-  const names = await Names.deploy();
-  await names.waitForDeployment();
-  console.log('WraithNames:', await names.getAddress());
-
-  const Withdrawer = await ethers.getContractFactory('WraithWithdrawer');
-  const withdrawer = await Withdrawer.deploy();
-  await withdrawer.waitForDeployment();
-  console.log('WraithWithdrawer:', await withdrawer.getAddress());
+  console.log('\nDeployment summary:');
+  for (const d of deployed) console.log(`${d.name}:`, d.address, `(tx ${d.txHash})`);
 }
 
 main().catch((error) => {

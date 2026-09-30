@@ -1,0 +1,59 @@
+name: Deployment Manifest
+
+# deployments/manifest.json is the single record of every deployment across
+# EVM, Stellar, Solana and CKB (see deployments/README.md).
+#   check   offline, every push and PR: records match the schema, the manifest
+#           is rebuilt from them, and every checked-in consumer (subgraph,
+#           Anchor.toml, declare_id!, ckb/*.toml, stellar/contract-ids.json,
+#           hardhat chain IDs, README) agrees with it
+#   verify  weekly: re-reads every deployment from its chain and compares IDs,
+#           deployment heights and artifact hashes
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '41 6 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Reviewed toolchain pins. Bump them only through the process in SUPPLY_CHAIN.md.
+env:
+  NODE_VERSION: '22.23.2'
+
+jobs:
+  check:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts/deployment-manifest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Check manifest and consumers
+        run: npm run check
+
+  verify:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts/deployment-manifest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+      - name: Verify manifest against each chain
+        run: npm run verify

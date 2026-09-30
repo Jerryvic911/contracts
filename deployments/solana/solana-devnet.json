@@ -1,0 +1,69 @@
+{
+  "chain": "solana",
+  "network": "solana-devnet",
+  "networkId": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "recordedBy": "chain-query",
+  "contracts": [
+    {
+      "name": "wraith_announcer",
+      "id": "9Ko7TuXHpLUH1ZsZWQEpeA9Tv7hX325ooWk5SD7Y9nuq",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "sha256",
+        "value": "0x2be5d2b1e9d08926ab515829c7f72b16367f59a8b0fd4241318762dd184dec67"
+      },
+      "deployment": {
+        "height": 456215445,
+        "txHash": null,
+        "deployer": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG",
+        "timestamp": "2026-04-17T18:59:39Z"
+      },
+      "solana": {
+        "programData": "DQJ8YU4PrKU3E7ZWSJUgXBM5fW5ztWfsymdjEgr4ep73",
+        "upgradeAuthority": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG"
+      }
+    },
+    {
+      "name": "wraith_sender",
+      "id": "E6J7GBSTjKbYANWjfTo5HfnXZ4Tg3LAasN7NrvCwn5Dq",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "sha256",
+        "value": "0xc77d61231a088a54ac6be18ea21b20f10d48c3b47e890bda517ee8e059a593b9"
+      },
+      "deployment": {
+        "height": 456215353,
+        "txHash": null,
+        "deployer": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG",
+        "timestamp": "2026-04-17T18:59:04Z"
+      },
+      "solana": {
+        "programData": "DVtt1mMXZtSxHB8a1XGrvBrfQYh8sstehfNWs4X2CME5",
+        "upgradeAuthority": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG"
+      }
+    },
+    {
+      "name": "wraith_names",
+      "id": "4JrrQh5aK7iLvx6MgtEQk7K7X3SsWfTLxVJu1jXEwNjD",
+      "version": null,
+      "sourceCommit": null,
+      "artifactHash": {
+        "algorithm": "sha256",
+        "value": "0x2583b2cd9cfa7dafd4a1710f61654b34796ef1932bde1c4f44f706d3821a0ea4"
+      },
+      "deployment": {
+        "height": 456215508,
+        "txHash": null,
+        "deployer": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG",
+        "timestamp": "2026-04-17T19:00:02Z"
+      },
+      "solana": {
+        "programData": "8YhdNGQvQmjFvcViCYxdoCBRnQjwgRpWpVH7uG82YcJM",
+        "upgradeAuthority": "C8Qaq6WeAjhSizcEMFstN2BaAp15ypR76bfvhX6skDvG"
+      }
+    }
+  ]
+}
