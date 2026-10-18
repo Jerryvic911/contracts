@@ -7,11 +7,61 @@ import { DEPLOYMENTS_DIR, MANIFEST_PATH, REPO_ROOT, SCHEMA_PATH } from './paths.
 export const CHAINS = ['evm', 'stellar', 'solana', 'ckb'] as const;
 export type Chain = (typeof CHAINS)[number];
 
+export interface Provenance {
+  status: 'source-verified' | 'unverifiable';
+  reason?: string;
+}
+
+export const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
+const NULL_COMMIT = '0'.repeat(40);
+
+/** null when `value` is a usable full git commit hash, otherwise why it is not. */
+export function commitError(value: unknown): string | null {
+  if (typeof value !== 'string') return 'must be a 40-character lowercase hex git commit';
+  if (!COMMIT_PATTERN.test(value))
+    return `"${value}" is not a full 40-character lowercase hex git commit`;
+  if (value === NULL_COMMIT) return 'is the all-zero null commit';
+  return null;
+}
+
+/**
+ * Provenance rules JSON Schema cannot express. A first-party contract is either
+ * source-verified (a well-formed commit that `verify-source` reproduces) or an
+ * explicitly unverifiable historical record. Records written by a deploy script
+ * can only be the former.
+ */
+export function provenanceErrors(deployment: Deployment, contract: Contract): string[] {
+  if (contract.external) return [];
+  const { provenance, sourceCommit } = contract;
+  if (!provenance) {
+    return ['provenance is required on first-party contracts (source-verified or unverifiable)'];
+  }
+  const errors: string[] = [];
+  if (provenance.status === 'source-verified') {
+    if (sourceCommit === null || sourceCommit === undefined) {
+      errors.push('provenance source-verified requires a sourceCommit, got null');
+    } else {
+      const problem = commitError(sourceCommit);
+      if (problem) errors.push(`sourceCommit ${problem}`);
+    }
+  } else {
+    if (deployment.recordedBy === 'deploy-script') {
+      errors.push('records written by a deploy script must be source-verified, not unverifiable');
+    }
+    if (sourceCommit !== null) {
+      errors.push('provenance unverifiable contradicts a non-null sourceCommit');
+    }
+    if (!provenance.reason) errors.push('provenance unverifiable requires a reason');
+  }
+  return errors;
+}
+
 export interface Contract {
   name: string;
   id: string;
   version: string | null;
   sourceCommit: string | null;
+  provenance?: Provenance;
   external?: boolean;
   artifactHash: { algorithm: 'keccak256' | 'sha256' | 'blake2b-256'; value: string };
   abi?: { path: string; sha256: string };
@@ -78,6 +128,7 @@ export function validateDeployment(deployment: Deployment): string[] {
     if (deployment.recordedBy === 'deploy-script' && !contract.sourceCommit && !contract.external) {
       errors.push(`${where} records written by a deploy script must carry sourceCommit`);
     }
+    errors.push(...provenanceErrors(deployment, contract).map((e) => `${where} ${e}`));
   });
   return errors;
 }

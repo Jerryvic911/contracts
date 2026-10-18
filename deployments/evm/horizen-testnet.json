@@ -10,6 +10,10 @@
       "id": "0x8AE65c05E7eb48B9bA652781Bc0a3DBA09A484F3",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "keccak256",
         "value": "0x9b846a07b17d019277a06764e6d0281dac81741c9a64944ede50ddc23ef10be0"
@@ -30,6 +34,10 @@
       "id": "0x953E6cEdcdfAe321796e7637d33653F6Ce05c527",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "keccak256",
         "value": "0x81d5bdf8d1ccb3ced05fde681ae45ecd6ae51dde1e368fed331eeb1684a383e2"

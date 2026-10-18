@@ -170,6 +170,7 @@ describe('build', () => {
           id: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
           version: '0.1.0',
           sourceCommit: 'a'.repeat(40),
+          provenance: { status: 'source-verified' },
           artifactHash: { algorithm: 'sha256', value: `0x${'11'.repeat(32)}` },
           deployment: { height: 123, txHash: null, deployer: null, timestamp: null },
         },
@@ -238,6 +239,7 @@ describe('subgraph', () => {
         id,
         version: null,
         sourceCommit: null,
+        provenance: { status: 'unverifiable', reason: 'test fixture' },
         artifactHash: { algorithm: 'keccak256', value: `0x${'00'.repeat(32)}` },
         deployment: { height },
       } as EvmRecord['contracts'][number]);

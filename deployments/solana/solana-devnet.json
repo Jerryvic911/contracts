@@ -10,6 +10,10 @@
       "id": "9Ko7TuXHpLUH1ZsZWQEpeA9Tv7hX325ooWk5SD7Y9nuq",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "sha256",
         "value": "0x2be5d2b1e9d08926ab515829c7f72b16367f59a8b0fd4241318762dd184dec67"
@@ -30,6 +34,10 @@
       "id": "E6J7GBSTjKbYANWjfTo5HfnXZ4Tg3LAasN7NrvCwn5Dq",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "sha256",
         "value": "0xc77d61231a088a54ac6be18ea21b20f10d48c3b47e890bda517ee8e059a593b9"
@@ -50,6 +58,10 @@
       "id": "4JrrQh5aK7iLvx6MgtEQk7K7X3SsWfTLxVJu1jXEwNjD",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "sha256",
         "value": "0x2583b2cd9cfa7dafd4a1710f61654b34796ef1932bde1c4f44f706d3821a0ea4"

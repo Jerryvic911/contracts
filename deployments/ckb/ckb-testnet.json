@@ -10,6 +10,10 @@
       "id": "0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "blake2b-256",
         "value": "0x31f6ab9c7e7a26ecba980b838ac3b5bd6c3a2f1b945e75b7cf7e6a46cb19cb87"
@@ -34,6 +38,10 @@
       "id": "0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d",
       "version": null,
       "sourceCommit": null,
+      "provenance": {
+        "status": "unverifiable",
+        "reason": "Historical record reconstructed from chain state; no source commit has been shown to reproduce the artifact hash."
+      },
       "artifactHash": {
         "algorithm": "blake2b-256",
         "value": "0xc133817d433f72ea16a2404adaf961524e9572c8378829a21968710d6182e20d"

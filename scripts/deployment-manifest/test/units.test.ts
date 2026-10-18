@@ -95,6 +95,7 @@ const evmDeployment = (): Deployment => ({
       id: '0x8AE65c05E7eb48B9bA652781Bc0a3DBA09A484F3',
       version: null,
       sourceCommit: null,
+      provenance: { status: 'unverifiable', reason: 'historical' },
       artifactHash: { algorithm: 'keccak256', value: `0x${'00'.repeat(32)}` },
       deployment: { height: 1 },
     },
@@ -124,6 +125,8 @@ describe('validation', () => {
     const d = { ...evmDeployment(), recordedBy: 'deploy-script' as const };
     expect(validateDeployment(d).join()).toMatch(/sourceCommit/);
     d.contracts[0].sourceCommit = 'a'.repeat(40);
+    expect(validateDeployment(d).join()).toMatch(/must be source-verified/);
+    d.contracts[0].provenance = { status: 'source-verified' };
     expect(validateDeployment(d)).toEqual([]);
   });
 
