@@ -68,6 +68,27 @@ so formatting does not matter). Solana programs carry `solana.programData` and
 `solana.upgradeAuthority`. CKB scripts carry `ckb.hashType` and `ckb.cellDep`, and
 `external: true` marks third-party scripts Wraith depends on (ckb-auth).
 
+### Every supported contract needs an explicit record
+
+For EVM, a network's record must account for every contract the repository supports
+(`ERC5564Announcer`, `ERC6538Registry`, `WraithSender`, `WraithNames`,
+`WraithWithdrawer`; the list is `EXPECTED_CONTRACTS` in
+[`catalogue.ts`](../scripts/deployment-manifest/src/catalogue.ts)). Each one is either:
+
+- in `contracts`, with its deployment transaction (`deployment.txHash`), block
+  (`deployment.height`), `artifactHash` and `abi` (path and canonical hash), or
+- in `undeployed`, with a reason:
+
+```jsonc
+"undeployed": [
+  { "name": "WraithSender", "reason": "Not deployed on horizen-testnet yet." }
+]
+```
+
+A name in both lists, a name that is not a supported contract, or a supported contract
+in neither list fails `npm run check`, `npm run build` and `npm run verify`. Recording a
+contract removes it from `undeployed`.
+
 `recordedBy: "chain-query"` means the record was reconstructed from chain state after
 the fact, so `sourceCommit` and `version` may be `null`. The current EVM, Solana and CKB
 records are of this kind: they predate the manifest. Records written by a deploy script
@@ -115,6 +136,10 @@ npm run record -- ckb --network ckb-testnet --rpc https://testnet.ckbapp.dev \
 
 npm run record -- evm --network horizen-testnet --rpc <rpc> \
   --contract WraithSender=<address>@<deploy tx hash>
+
+# a supported contract that is not deployed on this network
+npm run record -- evm --network horizen-testnet --rpc <rpc> \
+  --undeployed WraithNames="Not deployed on horizen-testnet yet."
 ```
 
 `record` reads heights and artifact hashes from the chain, merges into the existing

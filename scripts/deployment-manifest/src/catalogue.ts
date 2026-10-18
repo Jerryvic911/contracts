@@ -11,6 +11,13 @@ export const EXPECTED_CONTRACTS: Record<Chain, string[]> = {
   ckb: ['wraith-stealth-lock', 'wraith-names-type'],
 };
 
+/**
+ * Chains whose records must account for every contract in EXPECTED_CONTRACTS:
+ * each one is either recorded under `contracts` or listed under `undeployed`.
+ * EVM is the first; add a chain here once its records are complete.
+ */
+export const EXPLICIT_COVERAGE_CHAINS: Chain[] = ['evm'];
+
 export const CHAIN_LABEL: Record<Chain, string> = {
   evm: 'EVM',
   stellar: 'Stellar',

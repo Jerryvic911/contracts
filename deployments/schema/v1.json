@@ -45,6 +45,19 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/contract" }
+        },
+        "undeployed": {
+          "description": "Supported contracts this network deliberately has no deployment for. A network that records any contract must account for every contract its chain supports: each one is either in contracts or listed here with a reason. A name must not appear in both.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "reason"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       },
       "allOf": [

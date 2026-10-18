@@ -2,7 +2,12 @@ import { base64 } from '@scure/base';
 import { describe, expect, it } from 'vitest';
 import { canonicalAbiSha256, ckbHashHex, keccak256Hex } from '../src/hash.js';
 import { ID_CHECKS, decodeStellarContractId } from '../src/ids.js';
-import { buildManifest, validateDeployment, type Deployment } from '../src/manifest.js';
+import {
+  buildManifest,
+  coverageErrors,
+  validateDeployment,
+  type Deployment,
+} from '../src/manifest.js';
 import { serializeScript } from '../src/record/ckb.js';
 import { contractInstanceKey, wasmHashFromInstanceEntry } from '../src/record/stellar.js';
 
@@ -136,6 +141,26 @@ describe('validation', () => {
     expect(validateDeployment(d).length).toBeGreaterThan(0);
   });
 
+  it('accepts undeployed entries and rejects unknown, duplicate, empty or contradictory ones', () => {
+    const entry = (name: string, reason = 'not deployed yet') => ({ name, reason });
+    const withUndeployed = (...undeployed: Array<{ name: string; reason: string }>) => ({
+      ...evmDeployment(),
+      undeployed,
+    });
+
+    expect(validateDeployment(withUndeployed(entry('WraithSender')))).toEqual([]);
+    expect(validateDeployment(withUndeployed(entry('WraithRouter'))).join()).toMatch(
+      /not a supported evm contract/,
+    );
+    expect(
+      validateDeployment(withUndeployed(entry('WraithSender'), entry('WraithSender'))).join(),
+    ).toMatch(/duplicate undeployed/);
+    expect(validateDeployment(withUndeployed(entry('ERC5564Announcer'))).join()).toMatch(
+      /also recorded under contracts/,
+    );
+    expect(validateDeployment(withUndeployed(entry('WraithSender', ''))).length).toBeGreaterThan(0);
+  });
+
   it('orders the manifest by chain then network', () => {
     const ckb = { ...evmDeployment(), chain: 'ckb' as const, network: 'a' };
     const evmB = { ...evmDeployment(), network: 'b' };
@@ -144,5 +169,56 @@ describe('validation', () => {
       (d) => `${d.chain}/${d.network}`,
     );
     expect(order).toEqual(['evm/a', 'evm/b', 'ckb/a']);
+  });
+});
+
+describe('coverage', () => {
+  const EVM = [
+    'ERC5564Announcer',
+    'ERC6538Registry',
+    'WraithSender',
+    'WraithNames',
+    'WraithWithdrawer',
+  ];
+  const deployed = (name: string) => ({
+    ...evmDeployment().contracts[0],
+    name,
+    abi: { path: `evm/subgraph/abis/${name}.json`, sha256: `0x${'00'.repeat(32)}` },
+    deployment: { height: 1, txHash: `0x${'11'.repeat(32)}` },
+  });
+  const record = (deployedNames: string[], undeployedNames: string[] = []): Deployment => ({
+    ...evmDeployment(),
+    contracts: deployedNames.map(deployed),
+    ...(undeployedNames.length
+      ? { undeployed: undeployedNames.map((name) => ({ name, reason: 'not deployed yet' })) }
+      : {}),
+  });
+
+  it('passes when every supported EVM contract is recorded', () => {
+    expect(coverageErrors(record(EVM))).toEqual([]);
+  });
+
+  it('passes when the contracts that are not recorded are marked undeployed', () => {
+    expect(coverageErrors(record(EVM.slice(0, 2), EVM.slice(2)))).toEqual([]);
+  });
+
+  it('names every supported contract that is neither recorded nor marked undeployed', () => {
+    const errors = coverageErrors(record(EVM.slice(0, 2), ['WraithSender'])).join('\n');
+    expect(errors).toMatch(/WraithNames has no record/);
+    expect(errors).toMatch(/WraithWithdrawer has no record/);
+    expect(errors).not.toMatch(/WraithSender|ERC5564Announcer|ERC6538Registry/);
+  });
+
+  it('requires a deployment transaction and an ABI on every recorded EVM contract', () => {
+    const d = record(EVM);
+    d.contracts[0].deployment.txHash = null;
+    delete d.contracts[1].abi;
+    const errors = coverageErrors(d).join('\n');
+    expect(errors).toMatch(/ERC5564Announcer\) deployment\.txHash is required/);
+    expect(errors).toMatch(/ERC6538Registry\) abi is required/);
+  });
+
+  it('only applies to chains that require explicit coverage', () => {
+    expect(coverageErrors({ ...evmDeployment(), chain: 'stellar' })).toEqual([]);
   });
 });

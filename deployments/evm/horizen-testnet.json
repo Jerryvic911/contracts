@@ -45,5 +45,19 @@
         "timestamp": "2026-04-10T03:34:55Z"
       }
     }
+  ],
+  "undeployed": [
+    {
+      "name": "WraithSender",
+      "reason": "Not deployed on horizen-testnet yet; the README lists its address as TBD."
+    },
+    {
+      "name": "WraithNames",
+      "reason": "Not deployed on horizen-testnet yet; the README lists its address as TBD."
+    },
+    {
+      "name": "WraithWithdrawer",
+      "reason": "Not deployed on horizen-testnet yet; the README lists its address as TBD."
+    }
   ]
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Ajv2020, type ValidateFunction } from 'ajv/dist/2020.js';
+import { EXPECTED_CONTRACTS, EXPLICIT_COVERAGE_CHAINS } from './catalogue.js';
 import { ID_CHECKS } from './ids.js';
 import { DEPLOYMENTS_DIR, MANIFEST_PATH, REPO_ROOT, SCHEMA_PATH } from './paths.js';
 
@@ -28,6 +29,11 @@ export interface Contract {
   solana?: { programData: string; upgradeAuthority: string | null };
 }
 
+export interface Undeployed {
+  name: string;
+  reason: string;
+}
+
 export interface Deployment {
   chain: Chain;
   network: string;
@@ -35,6 +41,7 @@ export interface Deployment {
   rpcUrl?: string;
   recordedBy: 'deploy-script' | 'chain-query';
   contracts: Contract[];
+  undeployed?: Undeployed[];
 }
 
 export interface Manifest {
@@ -79,6 +86,54 @@ export function validateDeployment(deployment: Deployment): string[] {
       errors.push(`${where} records written by a deploy script must carry sourceCommit`);
     }
   });
+
+  const supported = EXPECTED_CONTRACTS[deployment.chain];
+  const undeployed = new Set<string>();
+  (deployment.undeployed ?? []).forEach((entry, i) => {
+    const where = `/undeployed/${i} (${entry.name})`;
+    if (undeployed.has(entry.name)) errors.push(`${where} duplicate undeployed name`);
+    undeployed.add(entry.name);
+    if (!supported.includes(entry.name)) {
+      errors.push(
+        `${where} is not a supported ${deployment.chain} contract (${supported.join(', ')})`,
+      );
+    }
+    if (seen.has(entry.name)) {
+      errors.push(`${where} is also recorded under contracts; it is either deployed or not`);
+    }
+  });
+  return errors;
+}
+
+/**
+ * What a record must say beyond the schema, for chains in EXPLICIT_COVERAGE_CHAINS:
+ * every supported contract is recorded or explicitly marked undeployed, and an
+ * EVM contract that is recorded carries its deployment transaction and ABI.
+ * Run it after validateDeployment passes.
+ */
+export function coverageErrors(deployment: Deployment): string[] {
+  if (!EXPLICIT_COVERAGE_CHAINS.includes(deployment.chain)) return [];
+  const errors: string[] = [];
+  const accounted = new Set([
+    ...deployment.contracts.map((c) => c.name),
+    ...(deployment.undeployed ?? []).map((u) => u.name),
+  ]);
+  for (const name of EXPECTED_CONTRACTS[deployment.chain]) {
+    if (!accounted.has(name)) {
+      errors.push(
+        `/contracts ${name} has no record: record its deployment, or list it under "undeployed" with a reason`,
+      );
+    }
+  }
+  if (deployment.chain === 'evm') {
+    deployment.contracts.forEach((contract, i) => {
+      const where = `/contracts/${i} (${contract.name})`;
+      if (!contract.deployment.txHash) {
+        errors.push(`${where} deployment.txHash is required for a deployed EVM contract`);
+      }
+      if (!contract.abi) errors.push(`${where} abi is required for a deployed EVM contract`);
+    });
+  }
   return errors;
 }
 
@@ -90,7 +145,9 @@ export function validateManifest(manifest: Manifest): string[] {
     const key = `${d.chain}/${d.network}`;
     if (keys.has(key)) errors.push(`duplicate deployment ${key}`);
     keys.add(key);
-    errors.push(...validateDeployment(d).map((e) => `${key}${e}`));
+    const problems = validateDeployment(d);
+    if (!problems.length) problems.push(...coverageErrors(d));
+    errors.push(...problems.map((e) => `${key}${e}`));
   }
   return errors;
 }
@@ -120,6 +177,7 @@ export function readRecord(
     return { errors: ['not a JSON object'] };
   }
   const errors = validateDeployment(deployment);
+  if (!errors.length) errors.push(...coverageErrors(deployment));
   if (deployment.chain !== chain)
     errors.push(`chain "${deployment.chain}" but stored under ${chain}/`);
   if (`${deployment.network}.json` !== name) {

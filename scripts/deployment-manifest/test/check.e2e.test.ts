@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
+import { canonicalAbiSha256 } from '../src/hash.js';
 
 const run = promisify(execFile);
 const pkgDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,6 +28,11 @@ const FIXTURE_PATHS = [
   'ckb/testnet.toml',
   'stellar/contract-ids.json',
 ];
+
+type Record_Contract = {
+  deployment: { txHash: string | null };
+  abi?: unknown;
+};
 
 let root: string;
 
@@ -138,6 +144,74 @@ describe('check', () => {
     expect(code).toBe(1);
   });
 
+  describe('EVM coverage', () => {
+    const RECORD = 'deployments/evm/horizen-testnet.json';
+    type Record = { contracts: unknown[]; undeployed?: Array<{ name: string; reason: string }> };
+    const change = (fn: (record: Record) => void) => {
+      const file = path.join(root, RECORD);
+      const record: Record = JSON.parse(fs.readFileSync(file, 'utf8'));
+      fn(record);
+      fs.writeFileSync(file, JSON.stringify(record, null, 2));
+    };
+
+    it('records the two deployed contracts and marks the other three undeployed', () => {
+      const record: Record = JSON.parse(fs.readFileSync(path.join(root, RECORD), 'utf8'));
+      expect(record.contracts).toHaveLength(2);
+      expect(record.undeployed?.map((u) => u.name).sort()).toEqual([
+        'WraithNames',
+        'WraithSender',
+        'WraithWithdrawer',
+      ]);
+    });
+
+    it('fails when a supported contract is neither recorded nor marked undeployed', async () => {
+      change((record) => {
+        record.undeployed = record.undeployed!.filter((u) => u.name !== 'WraithNames');
+      });
+      const { code, output } = await cli('check');
+      expect(output).toMatch(/horizen-testnet\.json: \/contracts WraithNames has no record/);
+      expect(output).not.toMatch(/WraithSender has no record|WraithWithdrawer has no record/);
+      expect(code).toBe(1);
+    });
+
+    it('fails when no contract is marked undeployed and three are missing', async () => {
+      change((record) => delete record.undeployed);
+      const { code, output } = await cli('check');
+      for (const name of ['WraithSender', 'WraithNames', 'WraithWithdrawer']) {
+        expect(output).toContain(`${name} has no record`);
+      }
+      expect(code).toBe(1);
+    });
+
+    it('fails when a contract is marked undeployed that is also recorded', async () => {
+      change((record) =>
+        record.undeployed!.push({ name: 'ERC5564Announcer', reason: 'wrongly listed' }),
+      );
+      const { code, output } = await cli('check');
+      expect(output).toMatch(/\(ERC5564Announcer\) is also recorded under contracts/);
+      expect(code).toBe(1);
+    });
+
+    it('fails when a recorded EVM contract has no transaction hash or no ABI', async () => {
+      change((record) => {
+        const [first, second] = record.contracts as Array<Record_Contract>;
+        first.deployment.txHash = null;
+        delete second.abi;
+      });
+      const { code, output } = await cli('check');
+      expect(output).toMatch(/ERC5564Announcer\) deployment\.txHash is required/);
+      expect(output).toMatch(/ERC6538Registry\) abi is required/);
+      expect(code).toBe(1);
+    });
+
+    it('refuses to build while a supported contract has no record', async () => {
+      change((record) => delete record.undeployed);
+      const { code, output } = await cli('build');
+      expect(output).toContain('WraithNames has no record');
+      expect(code).toBe(1);
+    });
+  });
+
   it('fails when a record changes without rebuilding the manifest', async () => {
     edit('deployments/solana/solana-devnet.json', '"height": 456215445', '"height": 456215446');
     const { code, output } = await cli('check');
@@ -225,6 +299,7 @@ describe('subgraph', () => {
   type EvmRecord = {
     network: string;
     contracts: Array<{ name: string; id: string; deployment: { height?: number } }>;
+    undeployed?: unknown;
   };
   const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(root, rel), 'utf8'));
   const readYaml = (rel: string) => parseYaml(fs.readFileSync(path.join(root, rel), 'utf8'));
@@ -233,15 +308,24 @@ describe('subgraph', () => {
   function recordAll(change?: (record: EvmRecord) => void) {
     const record: EvmRecord = readJson(RECORD);
     for (const { name, id, height } of missing) {
+      const abiPath = `evm/subgraph/abis/${name}.json`;
       record.contracts.push({
         name,
         id,
         version: null,
         sourceCommit: null,
         artifactHash: { algorithm: 'keccak256', value: `0x${'00'.repeat(32)}` },
-        deployment: { height },
+        abi: {
+          path: abiPath,
+          sha256: canonicalAbiSha256(
+            JSON.parse(fs.readFileSync(path.join(repoRoot, abiPath), 'utf8')),
+          ),
+        },
+        deployment: { height, txHash: `0x${'44'.repeat(32)}` },
       } as EvmRecord['contracts'][number]);
     }
+    // Recorded now, so no longer undeployed.
+    delete record.undeployed;
     change?.(record);
     fs.writeFileSync(path.join(root, RECORD), JSON.stringify(record, null, 2));
     return record;

@@ -91,7 +91,12 @@ export function renderSubgraph(
     const name = ds.getIn(['source', 'abi']) as string;
     const contract = contracts.find((c) => c?.name === name);
     if (!contract) {
-      errors.push(`${name}: not recorded in ${recordFile}`);
+      const reason = Array.isArray(deployment.undeployed)
+        ? deployment.undeployed.find((u) => u?.name === name)?.reason
+        : undefined;
+      errors.push(
+        `${name}: not recorded in ${recordFile}${reason ? ` (marked undeployed: ${reason})` : ''}`,
+      );
       continue;
     }
     const problems: string[] = [];
